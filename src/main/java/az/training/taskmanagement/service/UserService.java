@@ -1,6 +1,7 @@
 package az.training.taskmanagement.service;
 
 import az.training.taskmanagement.dto.CreateUserRequest;
+import az.training.taskmanagement.dto.UpdateUserRequest;
 import az.training.taskmanagement.dto.UserResponse;
 import az.training.taskmanagement.exception.DuplicateResourceException;
 import az.training.taskmanagement.exception.ResourceNotFoundException;
@@ -48,9 +49,30 @@ public class UserService {
         findUserOrThrow(id);
         userRepository.deleteById(id);
     }
+    public UserResponse updateUser(Long id, UpdateUserRequest request){
+        User user=findUserOrThrow(id);
 
+        if (request.name()!=null){
+            if (request.name().isBlank()){
+                throw new ValidationException("name can not be empty");
+            }
+            user.setName(request.name());
+        }
+        if (request.email()!=null){
+            if (request.email().isBlank()){
+                throw new ValidationException("email can not be empty");
+            }
+            boolean emailChanged =!request.email().equalsIgnoreCase(user.getEmail());
+            if(emailChanged && userRepository.existsByEmail(request.email())){
+                throw new DuplicateResourceException(" this email already exists: " + request.email());
+            }
+            user.setEmail(request.email());
+        }
+        return UserMapper.toResponse(userRepository.save(user));
+    }
     private User findUserOrThrow(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("User", id));
     }
+
 }
